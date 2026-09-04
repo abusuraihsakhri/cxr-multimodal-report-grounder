@@ -3,7 +3,7 @@ Distributed Component Coordination & Executive Hierarchy for CXR-Grounder: Chest
 Domain: Medical Multimodal AI
 """
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from .models import FrontierPayload, AgentTelemetryAlert, ExecutionStatus
 from .engine import FrontierDomainEngine
 

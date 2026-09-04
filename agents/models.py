@@ -4,9 +4,16 @@ Domain: Clinical & Biomedical AI
 Standard: CAP / CLSI / ISO Standards
 """
 import datetime
+import re
 from enum import Enum
 from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+# Allowed pattern for task_id and target_identifier: alphanumeric, hyphens, underscores
+_SAFE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_\-]{0,63}$")
+# Metric bounds for validation
+_METRIC_MIN = -1e6
+_METRIC_MAX = 1e6
 
 
 class UrgencyLevel(str, Enum):
@@ -30,6 +37,29 @@ class SystemTaskPayload(BaseModel):
     is_critical_flag: bool = Field(default=False, description="Emergency escalation or high priority trigger")
     attributes: Dict[str, Any] = Field(default_factory=dict, description="Metadata key-value pairs")
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
+
+    @field_validator("task_id", "target_identifier")
+    @classmethod
+    def validate_safe_identifier(cls, v: str) -> str:
+        if not _SAFE_ID_PATTERN.match(v):
+            raise ValueError(
+                f"Identifier must be 1-64 chars, alphanumeric/hyphen/underscore, "
+                f"starting with alphanumeric. Got: {v!r}"
+            )
+        return v
+
+    @field_validator("primary_metric", "secondary_metric")
+    @classmethod
+    def validate_metric_bounds(cls, v: float) -> float:
+        if not isinstance(v, (int, float)):
+            raise ValueError(f"Metric must be numeric, got {type(v).__name__}")
+        if v != v:  # NaN check
+            raise ValueError("Metric must not be NaN")
+        if v == float("inf") or v == float("-inf"):
+            raise ValueError("Metric must be finite")
+        if v < _METRIC_MIN or v > _METRIC_MAX:
+            raise ValueError(f"Metric must be between {_METRIC_MIN} and {_METRIC_MAX}")
+        return float(v)
 
 
 class AgentAlert(BaseModel):

@@ -1,12 +1,13 @@
 """
 FastAPI REST API Server for Cxr Multimodal Report Grounder.
 """
-from typing import Dict, Any, List
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from .base import AuditLogger, PHIGuard
-from .models import SystemTaskPayload, ConsensusDossier
+from .models import SystemTaskPayload
 from .supervisor import SystemSupervisor
+from .metrics import GLOBAL_METRICS
 
 supervisor = SystemSupervisor(model_provider="mock")
 
@@ -26,13 +27,12 @@ def health():
     return {"status": "HEALTHY", "service": "cxr-multimodal-report-grounder", "domain": "Clinical & Biomedical AI", "standard": "CAP / CLSI / ISO Standards", "version": "3.0.0-ENTERPRISE"}
 
 
-@app.get("/metrics")
+@app.get("/metrics", response_class=PlainTextResponse)
 def metrics():
-    return {
-        "dossiers_processed_total": len(supervisor.dossier_registry),
-        "audit_blocks_total": len(AuditLogger.get_trail()),
-        "system_status": "NOMINAL_OPTIMAL"
-    }
+    """Prometheus-compatible metrics endpoint."""
+    GLOBAL_METRICS.tasks_total = len(supervisor.dossier_registry)
+    GLOBAL_METRICS.audit_blocks_total = len(AuditLogger.get_trail())
+    return GLOBAL_METRICS.export_prometheus_text()
 
 
 @app.post("/api/audit")
