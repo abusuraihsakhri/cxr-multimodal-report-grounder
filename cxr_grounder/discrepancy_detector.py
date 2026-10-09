@@ -117,16 +117,16 @@ class DiscrepancyDetector:
 
     @staticmethod
     def _is_negated(text: str) -> bool:
-        return bool(re.match(r"^\\s*(?:no\\b|without\\b|negative for\\b|absence of\\b)", text, re.I))
+        return bool(re.match(r"^\s*(?:no\b|without\b|negative for\b|absence of\b)", text, re.I))
 
     @staticmethod
     def _laterality(text: str) -> Optional[str]:
         t = text.lower()
-        if re.search(r"\\bbilateral\\b|\\bboth\\b", t):
+        if re.search(r"\bbilateral\b|\bboth\b", t):
             return "bilateral"
-        if re.search(r"\\bright\\b", t):
+        if re.search(r"\bright\b", t):
             return "right"
-        if re.search(r"\\bleft\\b", t):
+        if re.search(r"\bleft\b", t):
             return "left"
         return None
 
