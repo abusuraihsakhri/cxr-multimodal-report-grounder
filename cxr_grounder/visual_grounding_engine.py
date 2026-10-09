@@ -5,6 +5,7 @@ Domain: Medical Multimodal AI | Standard: DICOM SR / CheXpert Labeling Standards
 """
 import uuid
 import math
+import re
 import datetime
 from dataclasses import dataclass, field
 from enum import Enum
@@ -198,7 +199,10 @@ class VisualGroundingEngine:
     @classmethod
     def ground_finding(cls, finding_text: str, confidence: float = 0.75) -> GroundedFinding:
         """Ground a single finding text to an image region."""
-        text_lower = finding_text.lower()
+        text_lower = finding_text.lower().replace(" ", "_").replace("-", "_")
+        # A negated mention is not evidence of a positive image finding.
+        if re.match(r"^\\s*(?:no\\b|without\\b|negative for\\b|absence of\\b)", finding_text, re.I):
+            confidence = 0.0
         category = cls.classify_finding(finding_text)
         laterality = cls.determine_laterality(finding_text)
 
@@ -229,7 +233,7 @@ class VisualGroundingEngine:
             matched_region = {"x_min": 0.20, "y_min": 0.20, "x_max": 0.80, "y_max": 0.80}
             matched_anatomy = "general_chest"
 
-        # Add slight randomization to simulate real detection
+        # Deterministic anatomical template; image pixels are not analyzed
         bbox = BoundingBox(
             x_min=matched_region["x_min"],
             y_min=matched_region["y_min"],
