@@ -1,5 +1,4 @@
 """Security, clinical-text, API, and integration regressions."""
-import copy
 import pytest
 from fastapi.testclient import TestClient
 
@@ -74,10 +73,10 @@ def test_metadata_is_screened_for_obvious_identifiers():
 
 def test_web_console_served_locally():
     client = TestClient(app)
-    assert client.get("/").status_code in (301, 302, 307, 308)
+    assert client.get("/", follow_redirects=False).status_code in (301, 302, 307, 308)
     page = client.get("/web/")
     assert page.status_code == 200
-    assert "Report-Anatomy" not in page.text or "template" in page.text.lower()
+    assert "template" in page.text.lower()
     assert client.get("/web/grounding.mjs").status_code == 200
 
 
