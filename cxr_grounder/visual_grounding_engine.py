@@ -210,28 +210,27 @@ class VisualGroundingEngine:
         matched_region = None
         matched_anatomy = None
         for keyword, regions in cls.KEYWORD_ANATOMY_MAP.items():
-            if keyword in text_lower:
-                # Use laterality to select specific region
-                for region_name in regions:
-                    if laterality == "right" and "right" in region_name:
-                        matched_region = cls.ANATOMY_TEMPLATES[region_name]
-                        matched_anatomy = region_name
-                        break
-                    elif laterality == "left" and "left" in region_name:
-                        matched_region = cls.ANATOMY_TEMPLATES[region_name]
-                        matched_anatomy = region_name
-                        break
-                    elif laterality is None or laterality == "bilateral":
-                        matched_region = cls.ANATOMY_TEMPLATES[region_name]
-                        matched_anatomy = region_name
-                        break
-                if matched_region:
-                    break
+            if keyword not in text_lower:
+                continue
+            chosen = [name for name in regions if laterality is None
+                      or laterality == "bilateral" or name.startswith(laterality + "_")]
+            if not chosen:
+                continue
+            boxes = [cls.ANATOMY_TEMPLATES[name] for name in chosen]
+            matched_region = {
+                "x_min": min(box["x_min"] for box in boxes),
+                "y_min": min(box["y_min"] for box in boxes),
+                "x_max": max(box["x_max"] for box in boxes),
+                "y_max": max(box["y_max"] for box in boxes),
+            }
+            matched_anatomy = " + ".join(chosen)
+            break
 
-        # Default to center of chest if no specific region matched
+        # Unknown statements have no credible anatomical match.
         if matched_region is None:
-            matched_region = {"x_min": 0.20, "y_min": 0.20, "x_max": 0.80, "y_max": 0.80}
-            matched_anatomy = "general_chest"
+            matched_region = {"x_min": 0.0, "y_min": 0.0, "x_max": 0.0, "y_max": 0.0}
+            matched_anatomy = "unmatched"
+            confidence = 0.0
 
         # Deterministic anatomical template; image pixels are not analyzed
         bbox = BoundingBox(
