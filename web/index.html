@@ -1,236 +1,99 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cxr Multimodal Report Grounder — Operations Console</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #090d16;
-            --card: #111827;
-            --border: #1f293d;
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.25);
-            --text: #f3f4f6;
-            --text-muted: #9ca3af;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --success: #10b981;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 2rem;
-            min-height: 100vh;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .header-title h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
-        .header-title p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem; }
-        .badge {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: var(--accent-glow);
-            color: var(--accent);
-            border: 1px solid var(--accent);
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr;
-            gap: 1.5rem;
-        }
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .card h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; }
-        input, select, textarea {
-            width: 100%;
-            padding: 0.65rem 0.9rem;
-            background: #0d1322;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: #fff;
-            font-family: inherit;
-            font-size: 0.9rem;
-        }
-        input:focus, textarea:focus { outline: none; border-color: var(--accent); }
-        .btn {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 0.7rem 1.4rem;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-        }
-        .btn:hover { background: #2563eb; }
-        .terminal {
-            background: #060911;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: #10b981;
-            height: 380px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        .metrics-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .metric-box {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
-        }
-        .metric-val { font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: 0.25rem; }
-        .metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>CXR Grounder | Report-Anatomy Template Explorer</title>
+  <style>
+    :root { font: 16px/1.5 system-ui, sans-serif; color-scheme: dark; --bg:#0b1220;--panel:#141f32;--edge:#31415b;--text:#edf3fc;--muted:#bbc9dc;--blue:#77b8ff;--red:#ffb27c }
+    * { box-sizing:border-box }
+    body { background:var(--bg); color:var(--text); margin:0; padding:0 1rem 3rem }
+    header,main,footer { max-width:1250px; margin:auto }
+    header { padding:1.7rem 0 1rem }
+    h1 { font-size:clamp(1.45rem,2vw,2.1rem);margin:0 0 .25rem }
+    h2 { font-size:1.13rem; margin:0 0 .9rem }
+    p { margin:.4rem 0 .9rem }
+    .eyebrow { text-transform:uppercase;letter-spacing:.1em;font-size:.76rem;color:var(--blue) }
+    .notice { border-left:3px solid var(--red);padding:.65rem .85rem;background:#272538;color:#fff9f5; margin:1rem 0 1.4rem }
+    .layout { display:grid;grid-template-columns:minmax(280px,420px) minmax(0,1fr);gap:1rem }
+    .card { background:var(--panel);border:1px solid var(--edge);padding:1.2rem;border-radius:12px;min-width:0 }
+    label { display:block;margin:.95rem 0 .35rem;font-weight:600;font-size:.9rem }
+    input,textarea,button { font:inherit }
+    input[type=text],textarea,input[type=file] { width:100%;background:#0d1729;border:1px solid #546680;border-radius:6px;color:var(--text);padding:.65rem }
+    textarea { resize:vertical;min-height:180px }
+    input:focus-visible,textarea:focus-visible,button:focus-visible {outline:3px solid var(--blue);outline-offset:2px}
+    .hint,small {color:var(--muted);font-size:.82rem}
+    button {background:#2774c6;color:#fff;padding:.64rem 1.1rem;border:1px solid #80b8fc;border-radius:7px;cursor:pointer;font-weight:650}
+    button:hover {background:#366baa}
+    button:disabled {opacity:.55;cursor:not-allowed}
+    .actions {display:flex;gap:.65rem;flex-wrap:wrap;margin-top:1.1rem}
+    .secondary {background:transparent;color:var(--blue)}
+    .secondary:hover {background:#203853}
+    .preview {position:relative;width:100%;max-width:640px;margin:0 auto;background:#070c15;border:1px solid var(--edge);border-radius:6px;overflow:hidden}
+    .preview img {width:100%;height:auto;object-fit:contain;display:block}
+    .preview svg {position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+    .preview svg rect {fill:#77b8ff33;stroke:#8ac6ff;stroke-width:.6;vector-effect:non-scaling-stroke}
+    .empty {padding:3rem 1rem;text-align:center;color:var(--muted);border:1px dashed var(--edge);border-radius:8px}
+    .result-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem;margin:1rem 0}
+    .stat {background:#0d1729;border:1px solid var(--edge);padding:.7rem;border-radius:7px}
+    .stat strong {display:block;font-size:1.35rem}
+    ol {padding-left:1.3rem;margin:0}
+    li {margin:.6rem 0;border-bottom:1px solid var(--edge);padding-bottom:.6rem;overflow-wrap:anywhere}
+    li strong {display:block}
+    code {font-size:.84rem;color:#cbdffd}
+    #status {min-height:1.4em;color:var(--muted);margin:.8rem 0}
+    #status.error {color:#ffd1b5}
+    footer {padding-top:1.6rem;color:var(--muted);font-size:.85rem}
+    @media(max-width:850px){.layout{grid-template-columns:1fr}body{padding:0 .75rem 2rem}.card{padding:.95rem}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+  </style>
+  <script type="module" src="./app.mjs"></script>
 </head>
 <body>
-
-    <div class="header">
-        <div class="header-title">
-            <h1>Cxr Multimodal Report Grounder</h1>
-            <p>Domain: Clinical & Cryptographic AI | Standard: CAP / CLSI / NIST Standards | LabMind-Atlas Architecture</p>
-        </div>
-        <div>
-            <span class="badge">Air-Gapped Active</span>
-            <span class="badge" style="background: rgba(16,185,129,0.2); color: #10b981; border-color: #10b981;">Zero-PHI Guard Active</span>
-        </div>
+<header>
+  <div class="eyebrow">Chest radiograph • Educational utility</div>
+  <h1>CXR report-to-anatomy explorer</h1>
+  <p>Map terms in a chest X-ray report onto approximate, predefined anatomical regions.</p>
+  <div class="notice"><strong>Not a diagnostic system.</strong> This tool does not analyze pixels, identify pathology, or validate radiological findings. Boxes are fixed anatomical templates, not model predictions. Use de-identified material only.</div>
+</header>
+<main class="layout">
+  <section class="card" aria-labelledby="inputs">
+    <h2 id="inputs">1. Study and report</h2>
+    <form id="ground-form">
+      <label for="study-id">De-identified study ID</label>
+      <input id="study-id" type="text" value="DEMO-CXR-001" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{0,63}" required autocomplete="off">
+      <label for="image-file">Local chest X-ray image (optional)</label>
+      <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp">
+      <p class="hint">PNG, JPEG or WebP; maximum 20 MB. The image stays in this browser. DICOM files are not supported here.</p>
+      <label for="findings">Finding statements (one per line)</label>
+      <textarea id="findings" maxlength="20000" required spellcheck="false">Cardiomegaly
+Right pleural effusion
+No pneumothorax</textarea>
+      <p class="hint">Up to 100 lines, 400 characters per line. For demonstration, use upright PA/AP radiographs; templates are not aligned to patient anatomy.</p>
+      <div class="actions">
+        <button type="submit" id="analyze">Map findings</button>
+        <button type="button" id="export" class="secondary" disabled>Export JSON</button>
+      </div>
+      <p id="status" role="status" aria-live="polite">Ready. All processing takes place locally.</p>
+    </form>
+  </section>
+  <section class="card" aria-labelledby="results">
+    <h2 id="results">2. Anatomical template view</h2>
+    <div id="image-placeholder" class="empty">Choose a local image to display region overlays. You can map text without an image.</div>
+    <div id="image-wrapper" class="preview" hidden>
+      <img id="preview-img" alt="Local radiograph selected by the user">
+      <svg id="overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Template bounding boxes"></svg>
     </div>
-
-    <div class="metrics-bar">
-        <div class="metric-box">
-            <div class="metric-label">System Status</div>
-            <div class="metric-val" style="color: var(--success);" id="m-status">OPTIMAL</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Tasks Processed</div>
-            <div class="metric-val" id="m-tasks">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Audit Blocks Signed</div>
-            <div class="metric-val" id="m-audit">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">PHI Interceptions</div>
-            <div class="metric-val" style="color: var(--accent);" id="m-phi">0</div>
-        </div>
+    <div class="result-grid" aria-live="polite">
+      <div class="stat"><span>Finding mentions</span><strong id="total">—</strong></div>
+      <div class="stat"><span>Template matches</span><strong id="mapped">—</strong></div>
     </div>
-
-    <div class="grid">
-        <div class="card">
-            <h2>⚙️ Dispatch Distributed Component Audit</h2>
-            <div class="form-group">
-                <label>Task / Sample ID</label>
-                <input type="text" id="task_id" value="TASK-2026-LIVE-01">
-            </div>
-            <div class="form-group">
-                <label>Target Identifier</label>
-                <input type="text" id="target_id" value="SPECIMEN-ALPHA-77">
-            </div>
-            <div class="form-group">
-                <label>Primary Measurement / Value</label>
-                <input type="number" id="primary_metric" value="29.4" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Secondary Metric / Kinetic Index</label>
-                <input type="number" id="secondary_metric" value="14.8" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Status / Phenotype Descriptor</label>
-                <input type="text" id="status_descriptor" value="DISCORDANT_ANOMALY">
-            </div>
-            <div class="form-group">
-                <label><input type="checkbox" id="is_critical" checked> Trigger Emergency / Critical Flag</label>
-            </div>
-            <button class="btn" onclick="runAudit()">Execute Distributed Component Audit</button>
-        </div>
-
-        <div class="card">
-            <h2>📊 Real-Time Consensus Dossier & Audit Log</h2>
-            <div class="terminal" id="outputConsole">// Cxr Multimodal Report Grounder Operations Console Ready
-// Connection established with Air-Gapped Supervisor
-// Cryptographic HMAC-SHA256 audit ledger loaded.
-// Ready for live task payload dispatch...</div>
-        </div>
-    </div>
-
-    <script>
-        async function runAudit() {
-            const consoleEl = document.getElementById('outputConsole');
-            consoleEl.innerText = "// Dispatching task across specialized workers...
-// Invoking InvariantQCWorker, SafetyEscalationWorker, ProtocolWorker...";
-
-            const payload = {
-                task_id: document.getElementById('task_id').value,
-                target_identifier: document.getElementById('target_id').value,
-                primary_metric: parseFloat(document.getElementById('primary_metric').value),
-                secondary_metric: parseFloat(document.getElementById('secondary_metric').value),
-                status_descriptor: document.getElementById('status_descriptor').value,
-                is_critical_flag: document.getElementById('is_critical').checked
-            };
-
-            try {
-                const res = await fetch('/api/audit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                consoleEl.innerText = JSON.stringify(data, null, 2);
-                document.getElementById('m-tasks').innerText = parseInt(document.getElementById('m-tasks').innerText) + 1;
-                document.getElementById('m-audit').innerText = parseInt(document.getElementById('m-audit').innerText) + 1;
-            } catch (err) {
-                consoleEl.innerText = "// Offline / Simulation Output:\n" + JSON.stringify({
-                    dossier_id: "DOSSIER-SIM-" + Math.floor(Math.random()*10000),
-                    system: "cxr-multimodal-report-grounder",
-                    domain: "Clinical & Cryptographic AI",
-                    task_id: payload.task_id,
-                    overall_urgency: payload.is_critical_flag ? "CRITICAL_STAT_PANIC" : "ELEVATED_RISK",
-                    integrity_status: "DISCORDANT_ANOMALY",
-                    alerts: [
-                        { worker: "InvariantQCWorker", alert: "Primary metric exceeds upper reference bound" },
-                        { worker: "SafetyEscalationWorker", alert: "Critical emergency interlock flag active" }
-                    ],
-                    audit_hash: "HMAC_SHA256_e83f9a72b941d6c381f9"
-                }, null, 2);
-            }
-        }
-    </script>
+    <h2>Mapped statements</h2>
+    <div id="list-placeholder" class="hint">Submit the form to view the template annotations.</div>
+    <ol id="finding-list" aria-label="Finding annotations"></ol>
+  </section>
+</main>
+<footer>Local-only visualization with deterministic anatomical coordinates. No external models, remote processing or clinical accuracy claims. Source and tests are included in this repository.</footer>
 </body>
 </html>

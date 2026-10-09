@@ -3,11 +3,14 @@ Supervisor Orchestrator & Operations Intelligence for Cxr Multimodal Report Grou
 Domain: Clinical & Biomedical AI
 """
 import uuid
+import json
+import time
 from typing import Dict, List
 from .base import AuditLogger, PHIGuard
 from .models import SystemTaskPayload, AgentAlert, ConsensusDossier, UrgencyLevel, SystemIntegrityStatus
 from .workers import InvariantQCWorker, SafetyEscalationWorker, ProtocolConformanceWorker
 from .llm_factory import LLMFactory
+from .metrics import GLOBAL_METRICS
 
 
 class SystemSupervisor:
@@ -21,10 +24,12 @@ class SystemSupervisor:
         self.dossier_registry: Dict[str, ConsensusDossier] = {}
 
     def process_task(self, payload: SystemTaskPayload, actor: str = "SystemSupervisor") -> ConsensusDossier:
-        # Zero-PHI outbound validation
+        start_time = time.perf_counter()
+        # Identifier-pattern screening; this is not a complete PHI detector.
         PHIGuard.assert_no_phi(payload.task_id)
         PHIGuard.assert_no_phi(payload.target_identifier)
         PHIGuard.assert_no_phi(payload.status_descriptor)
+        PHIGuard.assert_no_phi(json.dumps(payload.attributes))
 
         # Multi-worker evaluations
         all_alerts: List[AgentAlert] = []
@@ -71,6 +76,7 @@ class SystemSupervisor:
         )
 
         self.dossier_registry[dossier.dossier_id] = dossier
+        GLOBAL_METRICS.record_task(overall_urgency.value, time.perf_counter() - start_time)
         return dossier
 
     def query_supervisory_chat(self, query: str) -> str:

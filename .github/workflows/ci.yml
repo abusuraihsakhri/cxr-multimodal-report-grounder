@@ -23,14 +23,31 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install fastapi uvicorn pydantic pytest
+        python -m pip install --upgrade pip "setuptools>=83"
+        pip install -e '.[test]'
+
+    - name: Audit installed Python dependencies
+      run: |
+        python -m pip install pip-audit
+        pip-audit
 
     - name: Run Pytest Suite
       run: |
         pytest -v
 
-    - name: Security SAST & Zero-PHI Audit
+    - name: Check Python syntax
+      run: python -m compileall -q agents cxr_grounder cli.py enrichment.py
+
+    - name: Test browser module syntax and grounding
+      run: |
+        node --check web/app.mjs
+        node --check web/grounding.mjs
+        node --test web/grounding.test.mjs
+
+    - name: Security audit regression
+      run: python -m pytest -q tests/test_regressions.py
+
+    - name: Audit trail integrity check
       run: |
         python -c "
         from agents.base import PHIGuard, AuditLogger

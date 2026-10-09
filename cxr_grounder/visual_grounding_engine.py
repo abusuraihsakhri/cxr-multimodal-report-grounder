@@ -5,6 +5,7 @@ Domain: Medical Multimodal AI | Standard: DICOM SR / CheXpert Labeling Standards
 """
 import uuid
 import math
+import re
 import datetime
 from dataclasses import dataclass, field
 from enum import Enum
@@ -198,7 +199,10 @@ class VisualGroundingEngine:
     @classmethod
     def ground_finding(cls, finding_text: str, confidence: float = 0.75) -> GroundedFinding:
         """Ground a single finding text to an image region."""
-        text_lower = finding_text.lower()
+        text_lower = finding_text.lower().replace(" ", "_").replace("-", "_")
+        # A negated mention is not evidence of a positive image finding.
+        if re.match(r"^\s*(?:no\b|without\b|negative for\b|absence of\b)", finding_text, re.I):
+            confidence = 0.0
         category = cls.classify_finding(finding_text)
         laterality = cls.determine_laterality(finding_text)
 
@@ -206,30 +210,29 @@ class VisualGroundingEngine:
         matched_region = None
         matched_anatomy = None
         for keyword, regions in cls.KEYWORD_ANATOMY_MAP.items():
-            if keyword in text_lower:
-                # Use laterality to select specific region
-                for region_name in regions:
-                    if laterality == "right" and "right" in region_name:
-                        matched_region = cls.ANATOMY_TEMPLATES[region_name]
-                        matched_anatomy = region_name
-                        break
-                    elif laterality == "left" and "left" in region_name:
-                        matched_region = cls.ANATOMY_TEMPLATES[region_name]
-                        matched_anatomy = region_name
-                        break
-                    elif laterality is None or laterality == "bilateral":
-                        matched_region = cls.ANATOMY_TEMPLATES[region_name]
-                        matched_anatomy = region_name
-                        break
-                if matched_region:
-                    break
+            if keyword not in text_lower:
+                continue
+            chosen = [name for name in regions if laterality is None
+                      or laterality == "bilateral" or name.startswith(laterality + "_")]
+            if not chosen:
+                continue
+            boxes = [cls.ANATOMY_TEMPLATES[name] for name in chosen]
+            matched_region = {
+                "x_min": min(box["x_min"] for box in boxes),
+                "y_min": min(box["y_min"] for box in boxes),
+                "x_max": max(box["x_max"] for box in boxes),
+                "y_max": max(box["y_max"] for box in boxes),
+            }
+            matched_anatomy = " + ".join(chosen)
+            break
 
-        # Default to center of chest if no specific region matched
+        # Unknown statements have no credible anatomical match.
         if matched_region is None:
-            matched_region = {"x_min": 0.20, "y_min": 0.20, "x_max": 0.80, "y_max": 0.80}
-            matched_anatomy = "general_chest"
+            matched_region = {"x_min": 0.0, "y_min": 0.0, "x_max": 0.0, "y_max": 0.0}
+            matched_anatomy = "unmatched"
+            confidence = 0.0
 
-        # Add slight randomization to simulate real detection
+        # Deterministic anatomical template; image pixels are not analyzed
         bbox = BoundingBox(
             x_min=matched_region["x_min"],
             y_min=matched_region["y_min"],

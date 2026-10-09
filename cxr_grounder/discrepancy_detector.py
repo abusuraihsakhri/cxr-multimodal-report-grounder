@@ -4,6 +4,7 @@ Compares radiologist reports with AI findings to identify missed or overcalled f
 Domain: Medical Multimodal AI | Standard: DICOM SR / CheXpert Labeling Standards
 """
 import uuid
+import re
 import datetime
 from dataclasses import dataclass, field
 from enum import Enum
@@ -109,9 +110,25 @@ class DiscrepancyDetector:
     def _normalize_finding(cls, text: str) -> str:
         """Normalize finding text for comparison."""
         text = text.lower().strip()
-        for prefix in ["there is", "there are", "no evidence of", "no significant"]:
-            text = text.replace(prefix, "")
+        for prefix in ["there is", "there are"]:
+            if text.startswith(prefix + " "):
+                text = text[len(prefix):].strip()
         return " ".join(text.split())
+
+    @staticmethod
+    def _is_negated(text: str) -> bool:
+        return bool(re.match(r"^\s*(?:no\b|without\b|negative for\b|absence of\b)", text, re.I))
+
+    @staticmethod
+    def _laterality(text: str) -> Optional[str]:
+        t = text.lower()
+        if re.search(r"\bbilateral\b|\bboth\b", t):
+            return "bilateral"
+        if re.search(r"\bright\b", t):
+            return "right"
+        if re.search(r"\bleft\b", t):
+            return "left"
+        return None
 
     @classmethod
     def _compute_similarity(cls, text_a: str, text_b: str) -> float:
@@ -133,7 +150,7 @@ class DiscrepancyDetector:
     def _is_critical_finding(cls, text: str) -> bool:
         """Check if a finding is clinically critical."""
         text_lower = text.lower()
-        return any(kw in text_lower for kw in cls.CRITICAL_KEYWORDS)
+        return not cls._is_negated(text) and any(kw in text_lower for kw in cls.CRITICAL_KEYWORDS)
 
     @classmethod
     def _determine_significance(cls, finding_text: str, discrepancy_type: DiscrepancyType) -> ClinicalSignificance:
@@ -172,7 +189,7 @@ class DiscrepancyDetector:
             best_score = 0.0
             best_j = -1
             for j, ai_finding in enumerate(ai_findings):
-                if j in matched_ai:
+                if j in matched_ai or cls._is_negated(rad_finding) != cls._is_negated(ai_finding):
                     continue
                 score = cls._compute_similarity(rad_finding, ai_finding)
                 if score > best_score:
@@ -187,7 +204,20 @@ class DiscrepancyDetector:
                 rad_severity = cls._extract_severity(rad_finding)
                 ai_severity = cls._extract_severity(ai_findings[best_j])
 
-                if rad_severity is not None and ai_severity is not None and rad_severity != ai_severity:
+                rad_side = cls._laterality(rad_finding)
+                ai_side = cls._laterality(ai_findings[best_j])
+                if rad_side is not None and ai_side is not None and rad_side != ai_side:
+                    discrepancies.append(Discrepancy(
+                        discrepancy_id=str(uuid.uuid4())[:8],
+                        discrepancy_type=DiscrepancyType.LATERALITY_MISMATCH,
+                        clinical_significance=ClinicalSignificance.SIGNIFICANT,
+                        radiologist_finding=rad_finding,
+                        ai_finding=ai_findings[best_j],
+                        similarity_score=best_score,
+                        explanation=f"Laterality mismatch: radiologist {rad_side}, comparator {ai_side}.",
+                        recommendation="Verify laterality against the original image and report.",
+                    ))
+                elif rad_severity is not None and ai_severity is not None and rad_severity != ai_severity:
                     disc = Discrepancy(
                         discrepancy_id=str(uuid.uuid4())[:8],
                         discrepancy_type=DiscrepancyType.SEVERITY_MISMATCH,
