@@ -51,3 +51,39 @@ form.addEventListener("submit", event => {
     setStatus(error.message, true);
   }
 });
+
+let selectedImageURL = null;
+const fileInput = element("image-file");
+fileInput.addEventListener("change", () => {
+  if (selectedImageURL) URL.revokeObjectURL(selectedImageURL);
+  selectedImageURL = null;
+  element("image-wrapper").hidden = true;
+  element("image-placeholder").hidden = false;
+  const file = fileInput.files?.[0];
+  if (!file) return;
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 20 * 1024 * 1024) {
+    fileInput.value = "";
+    setStatus("Choose a PNG, JPEG or WebP image up to 20 MB.", true);
+    return;
+  }
+  const preview = element("preview-img");
+  selectedImageURL = URL.createObjectURL(file);
+  preview.onload = () => {
+    element("image-wrapper").hidden = false;
+    element("image-placeholder").hidden = true;
+    draw();
+    setStatus("Local image loaded; no pixels have been analyzed.");
+  };
+  preview.onerror = () => setStatus("Unable to display this image.", true);
+  preview.src = selectedImageURL;
+});
+for (const id of ["study-id", "findings"]) {
+  element(id).addEventListener("input", () => {
+    current = null;
+    element("export").disabled = true;
+    overlay.replaceChildren();
+  });
+}
+window.addEventListener("pagehide", () => {
+  if (selectedImageURL) URL.revokeObjectURL(selectedImageURL);
+});
