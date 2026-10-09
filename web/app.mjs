@@ -87,3 +87,14 @@ for (const id of ["study-id", "findings"]) {
 window.addEventListener("pagehide", () => {
   if (selectedImageURL) URL.revokeObjectURL(selectedImageURL);
 });
+
+element("export").addEventListener("click", () => {
+  if (!current) return;
+  const data = JSON.stringify(current, null, 2);
+  const url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = current.studyId + "-templates.json";
+  link.click();
+  URL.revokeObjectURL(url);
+});
