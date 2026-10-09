@@ -44,7 +44,7 @@ class SystemTaskPayload(BaseModel):
         if not _SAFE_ID_PATTERN.match(v):
             raise ValueError(
                 f"Identifier must be 1-64 chars, alphanumeric/hyphen/underscore, "
-                f"starting with alphanumeric. Got: {v!r}"
+                "starting with alphanumeric."
             )
         return v
 
