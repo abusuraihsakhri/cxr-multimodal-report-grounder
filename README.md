@@ -1,5 +1,7 @@
 # CXR Multimodal Report Grounder
 
+### [Open the Live Application →](https://abusuraihsakhri.github.io/cxr-multimodal-report-grounder/)
+
 A Python research toolkit and static browser demonstration for chest radiograph report terminology, approximate anatomical-region templates, heuristic report comparison, and teaching-case generation.
 
 **Scope and limitations:** This project does **not** interpret image pixels. Template bounding boxes are fixed normalized coordinates; they are not measured disease locations, trained-model attention, or diagnostic predictions. No clinical validation or calibrated confidence is established. Do not use for clinical decisions.
@@ -15,7 +17,7 @@ python -m http.server 8001 --directory web
 # Open http://localhost:8001/
 ~~~
 
-The GitHub Pages workflow publishes web/ after a push to master, provided GitHub Pages is enabled with **GitHub Actions** as the deployment source. A public Pages URL will be documented after successful live verification.
+The browser application is deployed through GitHub Pages using the GitHub Actions workflow. The deployment job verifies that the published HTML and JavaScript assets are accessible.
 
 ## Python setup
 
