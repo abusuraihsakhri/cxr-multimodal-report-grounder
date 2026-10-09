@@ -201,7 +201,7 @@ class VisualGroundingEngine:
         """Ground a single finding text to an image region."""
         text_lower = finding_text.lower().replace(" ", "_").replace("-", "_")
         # A negated mention is not evidence of a positive image finding.
-        if re.match(r"^\\s*(?:no\\b|without\\b|negative for\\b|absence of\\b)", finding_text, re.I):
+        if re.match(r"^\s*(?:no\b|without\b|negative for\b|absence of\b)", finding_text, re.I):
             confidence = 0.0
         category = cls.classify_finding(finding_text)
         laterality = cls.determine_laterality(finding_text)
