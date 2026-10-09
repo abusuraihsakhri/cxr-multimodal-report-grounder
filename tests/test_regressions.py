@@ -107,3 +107,15 @@ def test_successful_audit_updates_counters():
 def test_streamer_importable():
     import agents.streamer
     assert hasattr(agents.streamer, "GLOBAL_STREAMER")
+
+def test_unknown_finding_not_counted_as_grounded():
+    item = VisualGroundingEngine.ground_finding("Unmapped nonspecific statement")
+    assert item.grounding_confidence == GroundingConfidence.UNCERTAIN
+    assert item.location_anatomy == "unmatched"
+    assert item.bounding_box.area == 0
+
+
+def test_bilateral_effusion_covers_both_sides():
+    item = VisualGroundingEngine.ground_finding("Bilateral pleural effusion")
+    assert item.bounding_box.x_min == 0.10
+    assert item.bounding_box.x_max == 0.90
