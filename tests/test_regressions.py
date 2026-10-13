@@ -150,3 +150,11 @@ def test_term_boundaries_handle_plural_without_matching_massive():
     massive = VisualGroundingEngine.ground_finding("Massive lesion")
     assert massive.location_anatomy == "unmatched"
     assert massive.bounding_box.area == 0
+
+
+def test_unrelated_words_do_not_create_laterality_or_pathology():
+    from cxr_grounder.visual_grounding_engine import FindingCategory
+
+    assert VisualGroundingEngine.determine_laterality("Bright pulmonary opacity") is None
+    assert VisualGroundingEngine.classify_finding("Massive lesion") == FindingCategory.OTHER
+    assert VisualGroundingEngine.classify_finding("Massive pleural effusion") == FindingCategory.PLEURAL
