@@ -119,3 +119,34 @@ def test_bilateral_effusion_covers_both_sides():
     item = VisualGroundingEngine.ground_finding("Bilateral pleural effusion")
     assert item.bounding_box.x_min == 0.10
     assert item.bounding_box.x_max == 0.90
+
+
+def test_negated_text_has_no_spatial_annotation():
+    item = VisualGroundingEngine.ground_finding("No right pneumothorax")
+    assert item.bounding_box.area == 0
+    assert item.bounding_box.confidence == 0.0
+    assert item.location_anatomy == "unmatched"
+    assert item.grounding_confidence == GroundingConfidence.UNCERTAIN
+
+
+def test_pulmonary_zone_qualifiers_restrict_template_coordinates():
+    upper = VisualGroundingEngine.ground_finding("Right upper lobe pneumonia")
+    assert upper.location_anatomy == "right_upper_lung"
+    assert upper.bounding_box.y_max == 0.35
+    lower = VisualGroundingEngine.ground_finding("Left basilar consolidation")
+    assert lower.location_anatomy == "left_lower_lung"
+    assert lower.bounding_box.y_min == 0.35
+
+
+def test_unsupported_middle_lobe_template_does_not_guess_position():
+    item = VisualGroundingEngine.ground_finding("Right middle lobe pneumonia")
+    assert item.location_anatomy == "unmatched"
+    assert item.bounding_box.area == 0.0
+
+
+def test_term_boundaries_handle_plural_without_matching_massive():
+    pleural = VisualGroundingEngine.ground_finding("Right pleural effusions.")
+    assert pleural.location_anatomy == "right_costophrenic_angle"
+    massive = VisualGroundingEngine.ground_finding("Massive lesion")
+    assert massive.location_anatomy == "unmatched"
+    assert massive.bounding_box.area == 0
