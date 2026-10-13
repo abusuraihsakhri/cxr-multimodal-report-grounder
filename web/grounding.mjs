@@ -75,7 +75,7 @@ export function analyzeFindings(studyId, rawText) {
     const zone = zoneOf(text);
     const category = categoryOf(text);
     const positiveFinding = !NEGATED.test(text);
-    const keyText = text.toLowerCase().replace(/[\s-]+/g, "_");
+    const keyText = text.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
     let regionNames = null;
     if (positiveFinding) {
       for (const [term, names] of RULES) {
@@ -85,7 +85,8 @@ export function analyzeFindings(studyId, rawText) {
     let anatomy = null;
     let box = null;
     if (regionNames) {
-      const selected = side && side !== "bilateral"
+      const hasSide = regionNames.some(name => /^(right|left)_/.test(name));
+      const selected = hasSide && side && side !== "bilateral"
         ? regionNames.filter(name => name.startsWith(side + "_"))
         : regionNames;
       const isLungTemplate = regionNames.every(name => /_(upper|lower)_lung$/.test(name));
