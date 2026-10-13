@@ -45,3 +45,33 @@ test("input validation rejects malformed IDs, empty text, and excess lines", () 
   assert.throws(() => analyzeFindings("TEST", "Cardiomegaly\n".repeat(101)));
   assert.throws(() => analyzeFindings("TEST", "x".repeat(401)));
 });
+
+
+test("upper and lower lung qualifiers constrain template selection", () => {
+  const upper = analyzeFindings("ID1", "Right upper lobe pneumonia").findings[0];
+  assert.equal(upper.anatomicalRegion, "right_upper_lung");
+  assert.equal(upper.boundingBox.y_max, 0.35);
+  const lower = analyzeFindings("ID1", "Left basilar consolidation").findings[0];
+  assert.equal(lower.anatomicalRegion, "left_lower_lung");
+  assert.equal(lower.boundingBox.y_min, 0.35);
+});
+
+test("unsupported pulmonary location does not claim a bounding box", () => {
+  const middle = analyzeFindings("ID1", "Right middle lobe pneumonia");
+  assert.equal(middle.mappedMentions, 0);
+  assert.equal(middle.findings[0].boundingBox, null);
+});
+
+test("whole-word matching handles plurals and punctuation without mass false positives", () => {
+  const effusions = analyzeFindings("ID1", "Right pleural effusions.");
+  assert.equal(effusions.findings[0].anatomicalRegion, "right_costophrenic_angle");
+  const massive = analyzeFindings("ID1", "Massive lesion");
+  assert.equal(massive.mappedMentions, 0);
+});
+
+test("unspecified pulmonary location is not arbitrarily restricted to lower zones", () => {
+  const result = analyzeFindings("ID1", "Pneumonia");
+  assert.equal(result.mappedMentions, 1);
+  assert.match(result.findings[0].anatomicalRegion, /upper_lung/);
+  assert.match(result.findings[0].anatomicalRegion, /lower_lung/);
+});
