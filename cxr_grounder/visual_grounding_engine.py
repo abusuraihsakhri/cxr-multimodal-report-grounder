@@ -153,7 +153,7 @@ class VisualGroundingEngine:
         "pleural_effusion": ["right_costophrenic_angle", "left_costophrenic_angle"],
         "cardiomegaly": ["cardiac_silhouette"],
         "consolidation": ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"],
-        "atelectasis": ["right_lower_lung", "left_lower_lung"],
+        "atelectasis": ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"],
         "nodule": ["right_upper_lung", "left_upper_lung", "right_lower_lung", "left_lower_lung"],
         "mass": ["right_upper_lung", "left_upper_lung", "right_lower_lung", "left_lower_lung"],
         "hilar_enlargement": ["right_hilum", "left_hilum"],
@@ -162,7 +162,7 @@ class VisualGroundingEngine:
         "tracheal_deviation": ["trachea"],
         "fracture": ["spine"],
         "opacity": ["right_upper_lung", "left_upper_lung", "right_lower_lung", "left_lower_lung"],
-        "edema": ["right_lower_lung", "left_lower_lung"],
+        "edema": ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"],
         "pneumonia": ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"],
     }
 
@@ -201,19 +201,33 @@ class VisualGroundingEngine:
         """Ground a single finding text to an image region."""
         text_lower = finding_text.lower().replace(" ", "_").replace("-", "_")
         # A negated mention is not evidence of a positive image finding.
-        if re.match(r"^\s*(?:no\b|without\b|negative for\b|absence of\b)", finding_text, re.I):
+        is_negated = bool(re.match(r"^\s*(?:no\b|without\b|negative for\b|absence of\b)", finding_text, re.I))
+        if is_negated:
             confidence = 0.0
         category = cls.classify_finding(finding_text)
         laterality = cls.determine_laterality(finding_text)
+
+        # Reported upper/lower zones restrict lung templates, not anatomical proof.
+        # Unsupported middle/lingular zones have no template in this approximation.
+        zones = set()
+        if re.search(r"\b(?:upper|apical|apex)\b", finding_text, re.I):
+            zones.add("upper")
+        if re.search(r"\b(?:lower|basal|basilar|base)\b", finding_text, re.I):
+            zones.add("lower")
+        if re.search(r"\b(?:middle|lingula|lingular)\b", finding_text, re.I):
+            zones.add("unsupported")
+        zone = next(iter(zones)) if len(zones) == 1 else None
 
         # Find matching anatomy region
         matched_region = None
         matched_anatomy = None
         for keyword, regions in cls.KEYWORD_ANATOMY_MAP.items():
-            if keyword not in text_lower:
+            if is_negated or not re.search(r"(?<![a-z])" + re.escape(keyword) + r"(?![a-z])", text_lower):
                 continue
             chosen = [name for name in regions if laterality is None
                       or laterality == "bilateral" or name.startswith(laterality + "_")]
+            if zone and all(name.endswith(("_upper_lung", "_lower_lung")) for name in regions):
+                chosen = [name for name in chosen if name.endswith(f"_{zone}_lung")]
             if not chosen:
                 continue
             boxes = [cls.ANATOMY_TEMPLATES[name] for name in chosen]
