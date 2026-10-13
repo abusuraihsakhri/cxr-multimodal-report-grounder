@@ -16,13 +16,13 @@ const REGIONS = Object.freeze({
 });
 const RULES = [
   ["pleural_effusion", ["right_costophrenic_angle", "left_costophrenic_angle"]],
-  ["pneumothorax", ["right_upper_lung", "left_upper_lung"]],
+  ["pneumothorax", ["right_upper_lung", "left_upper_lung", "right_lower_lung", "left_lower_lung"]],
   ["cardiomegaly", ["cardiac_silhouette"]],
   ["consolidation", ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"]],
   ["atelectasis", ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"]],
-  ["opacity", ["right_upper_lung", "left_upper_lung"]],
-  ["nodule", ["right_upper_lung", "left_upper_lung"]],
-  ["mass", ["right_upper_lung", "left_upper_lung"]],
+  ["opacity", ["right_upper_lung", "left_upper_lung", "right_lower_lung", "left_lower_lung"]],
+  ["nodule", ["right_upper_lung", "left_upper_lung", "right_lower_lung", "left_lower_lung"]],
+  ["mass", ["right_upper_lung", "left_upper_lung", "right_lower_lung", "left_lower_lung"]],
   ["pneumonia", ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"]],
   ["hilar_enlargement", ["right_hilum", "left_hilum"]],
   ["mediastinal_widening", ["mediastinum"]],
