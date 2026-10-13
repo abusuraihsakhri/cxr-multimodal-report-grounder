@@ -18,18 +18,18 @@ const RULES = [
   ["pleural_effusion", ["right_costophrenic_angle", "left_costophrenic_angle"]],
   ["pneumothorax", ["right_upper_lung", "left_upper_lung"]],
   ["cardiomegaly", ["cardiac_silhouette"]],
-  ["consolidation", ["right_lower_lung", "left_lower_lung"]],
-  ["atelectasis", ["right_lower_lung", "left_lower_lung"]],
+  ["consolidation", ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"]],
+  ["atelectasis", ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"]],
   ["opacity", ["right_upper_lung", "left_upper_lung"]],
   ["nodule", ["right_upper_lung", "left_upper_lung"]],
   ["mass", ["right_upper_lung", "left_upper_lung"]],
-  ["pneumonia", ["right_lower_lung", "left_lower_lung"]],
+  ["pneumonia", ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"]],
   ["hilar_enlargement", ["right_hilum", "left_hilum"]],
   ["mediastinal_widening", ["mediastinum"]],
   ["aortic_enlargement", ["aortic_arch"]],
   ["tracheal_deviation", ["trachea"]],
   ["fracture", ["spine"]],
-  ["edema", ["right_lower_lung", "left_lower_lung"]],
+  ["edema", ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"]],
 ];
 const NEGATED = /^(?:no\b|without\b|negative for\b|absence of\b)/i;
 function lateralityOf(text) {
@@ -37,6 +37,17 @@ function lateralityOf(text) {
   if (/\bright\b/i.test(text)) return "right";
   if (/\bleft\b/i.test(text)) return "left";
   return null;
+}
+function zoneOf(text) {
+  const upper = /\b(upper|apical|apex)\b/i.test(text);
+  const lower = /\b(lower|basal|basilar|base)\b/i.test(text);
+  const unsupported = /\b(middle|lingula|lingular)\b/i.test(text);
+  if (Number(upper) + Number(lower) + Number(unsupported) !== 1) return null;
+  return upper ? "upper" : lower ? "lower" : "unsupported";
+}
+function matchesRule(normalizedText, term) {
+  // Require term boundaries to prevent "mass" matching "massive".
+  return new RegExp("(^|_)" + term + "(?:s|es)?(?=_|$)").test(normalizedText);
 }
 function categoryOf(text) {
   if (/\b(pleural|effusion|pneumothorax)\b/i.test(text)) return "pleural";
@@ -61,13 +72,14 @@ export function analyzeFindings(studyId, rawText) {
   }
   const findings = lines.map((text, index) => {
     const side = lateralityOf(text);
+    const zone = zoneOf(text);
     const category = categoryOf(text);
     const positiveFinding = !NEGATED.test(text);
     const keyText = text.toLowerCase().replace(/[\s-]+/g, "_");
     let regionNames = null;
     if (positiveFinding) {
       for (const [term, names] of RULES) {
-        if (keyText.includes(term)) { regionNames = names; break; }
+        if (matchesRule(keyText, term)) { regionNames = names; break; }
       }
     }
     let anatomy = null;
@@ -76,7 +88,10 @@ export function analyzeFindings(studyId, rawText) {
       const selected = side && side !== "bilateral"
         ? regionNames.filter(name => name.startsWith(side + "_"))
         : regionNames;
-      const usable = selected.length ? selected : regionNames;
+      const isLungTemplate = regionNames.every(name => /_(upper|lower)_lung$/.test(name));
+      const usable = zone && isLungTemplate
+        ? selected.filter(name => name.endsWith("_" + zone + "_lung"))
+        : selected;
       const bounds = usable.map(name => REGIONS[name]).filter(Boolean);
       if (bounds.length) {
         anatomy = usable.join(" + ");
