@@ -222,9 +222,10 @@ class VisualGroundingEngine:
         matched_region = None
         matched_anatomy = None
         for keyword, regions in cls.KEYWORD_ANATOMY_MAP.items():
-            if is_negated or not re.search(r"(?<![a-z])" + re.escape(keyword) + r"(?![a-z])", text_lower):
+            if is_negated or not re.search(r"(?<![a-z])" + re.escape(keyword) + r"(?:s|es)?(?![a-z])", text_lower):
                 continue
-            chosen = [name for name in regions if laterality is None
+            has_side = any(name.startswith(("left_", "right_")) for name in regions)
+            chosen = [name for name in regions if not has_side or laterality is None
                       or laterality == "bilateral" or name.startswith(laterality + "_")]
             if zone and all(name.endswith(("_upper_lung", "_lower_lung")) for name in regions):
                 chosen = [name for name in chosen if name.endswith(f"_{zone}_lung")]
