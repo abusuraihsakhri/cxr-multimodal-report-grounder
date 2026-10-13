@@ -10,6 +10,15 @@ function setStatus(message, error = false) {
   element("status").textContent = message;
   element("status").classList.toggle("error", error);
 }
+function clearMapping() {
+  current = null;
+  results.replaceChildren();
+  element("list-placeholder").hidden = false;
+  element("total").textContent = "—";
+  element("mapped").textContent = "—";
+  element("export").disabled = true;
+  overlay.replaceChildren();
+}
 function draw() {
   overlay.replaceChildren();
   if (!current) return;
@@ -45,9 +54,7 @@ form.addEventListener("submit", event => {
     draw();
     setStatus("Mapped " + current.mappedMentions + " of " + current.totalMentions + " mentions.");
   } catch (error) {
-    current = null;
-    element("export").disabled = true;
-    overlay.replaceChildren();
+    clearMapping();
     setStatus(error.message, true);
   }
 });
@@ -79,9 +86,8 @@ fileInput.addEventListener("change", () => {
 });
 for (const id of ["study-id", "findings"]) {
   element(id).addEventListener("input", () => {
-    current = null;
-    element("export").disabled = true;
-    overlay.replaceChildren();
+    clearMapping();
+    setStatus("Report changed. Map findings to update annotations.");
   });
 }
 window.addEventListener("pagehide", () => {

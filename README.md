@@ -8,7 +8,7 @@ A Python research toolkit and static browser demonstration for chest radiograph 
 
 ## Browser application
 
-The web/ application runs entirely in a modern browser. It accepts a de-identified study ID, one finding statement per line, and an optional local PNG/JPEG/WebP image (20 MB maximum). It displays approximate anatomical templates, distinguishes explicitly negated statements from positive findings, and exports JSON annotations. The uploaded image is rendered locally using an object URL and is not sent to a server. DICOM input is not supported in the browser.
+The web/ application runs entirely in a modern browser. It accepts a de-identified study ID, one finding statement per line, and an optional local PNG/JPEG/WebP image (20 MB maximum). It displays approximate anatomical templates, distinguishes explicitly negated statements from positive findings, and exports JSON annotations. Stated upper/lower/apical/basilar qualifiers restrict lung templates; unsupported middle-lobe/lingular locations are left unmapped rather than assigned guessed coordinates. Unspecified pulmonary findings may span multiple broad anatomical templates. Mapping is lexical and does not establish clinical presence or spatial accuracy. The uploaded image is rendered locally using an object URL and is not sent to a server. DICOM input is not supported in the browser.
 
 To preview it locally:
 

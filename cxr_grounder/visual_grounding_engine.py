@@ -153,7 +153,7 @@ class VisualGroundingEngine:
         "pleural_effusion": ["right_costophrenic_angle", "left_costophrenic_angle"],
         "cardiomegaly": ["cardiac_silhouette"],
         "consolidation": ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"],
-        "atelectasis": ["right_lower_lung", "left_lower_lung"],
+        "atelectasis": ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"],
         "nodule": ["right_upper_lung", "left_upper_lung", "right_lower_lung", "left_lower_lung"],
         "mass": ["right_upper_lung", "left_upper_lung", "right_lower_lung", "left_lower_lung"],
         "hilar_enlargement": ["right_hilum", "left_hilum"],
@@ -162,7 +162,7 @@ class VisualGroundingEngine:
         "tracheal_deviation": ["trachea"],
         "fracture": ["spine"],
         "opacity": ["right_upper_lung", "left_upper_lung", "right_lower_lung", "left_lower_lung"],
-        "edema": ["right_lower_lung", "left_lower_lung"],
+        "edema": ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"],
         "pneumonia": ["right_lower_lung", "left_lower_lung", "right_upper_lung", "left_upper_lung"],
     }
 
@@ -170,29 +170,33 @@ class VisualGroundingEngine:
     def classify_finding(cls, finding_text: str) -> FindingCategory:
         """Classify a finding text into a category."""
         text_lower = finding_text.lower()
-        if any(kw in text_lower for kw in ["heart", "cardiac", "cardiomegaly", "pericardial"]):
-            return FindingCategory.CARDIAC
-        if any(kw in text_lower for kw in ["lung", "pulmonary", "pneumonia", "nodule", "mass", "opacity", "atelectasis", "consolidation"]):
-            return FindingCategory.PULMONARY
-        if any(kw in text_lower for kw in ["pleural", "effusion", "pneumothorax"]):
+
+        def has_term(terms):
+            return any(re.search(r"\b" + re.escape(term) + r"\b", text_lower) for term in terms)
+
+        if has_term(["pleural", "effusion", "effusions", "pneumothorax"]):
             return FindingCategory.PLEURAL
-        if any(kw in text_lower for kw in ["mediastinal", "hilar", "aortic", "trachea"]):
+        if has_term(["heart", "cardiac", "cardiomegaly", "pericardial"]):
+            return FindingCategory.CARDIAC
+        if has_term(["lung", "lungs", "pulmonary", "pneumonia", "nodule", "nodules",
+                     "mass", "masses", "opacity", "atelectasis", "consolidation"]):
+            return FindingCategory.PULMONARY
+        if has_term(["mediastinal", "hilar", "aortic", "trachea"]):
             return FindingCategory.MEDIASTINAL
-        if any(kw in text_lower for kw in ["fracture", "rib", "vertebral", "spine"]):
+        if has_term(["fracture", "rib", "vertebral", "spine"]):
             return FindingCategory.SKELETAL
-        if any(kw in text_lower for kw in ["device", "catheter", "pacemaker", "line", "tube"]):
+        if has_term(["device", "catheter", "pacemaker", "line", "tube"]):
             return FindingCategory.DEVICE
         return FindingCategory.OTHER
 
     @classmethod
     def determine_laterality(cls, finding_text: str) -> Optional[str]:
         """Determine laterality from finding text."""
-        text_lower = finding_text.lower()
-        if "bilateral" in text_lower or "both" in text_lower:
+        if re.search(r"\b(?:bilateral|both)\b", finding_text, re.I):
             return "bilateral"
-        if "right" in text_lower:
+        if re.search(r"\bright\b", finding_text, re.I):
             return "right"
-        if "left" in text_lower:
+        if re.search(r"\bleft\b", finding_text, re.I):
             return "left"
         return None
 
@@ -201,19 +205,34 @@ class VisualGroundingEngine:
         """Ground a single finding text to an image region."""
         text_lower = finding_text.lower().replace(" ", "_").replace("-", "_")
         # A negated mention is not evidence of a positive image finding.
-        if re.match(r"^\s*(?:no\b|without\b|negative for\b|absence of\b)", finding_text, re.I):
+        is_negated = bool(re.match(r"^\s*(?:no\b|without\b|negative for\b|absence of\b)", finding_text, re.I))
+        if is_negated:
             confidence = 0.0
         category = cls.classify_finding(finding_text)
         laterality = cls.determine_laterality(finding_text)
+
+        # Reported upper/lower zones restrict lung templates, not anatomical proof.
+        # Unsupported middle/lingular zones have no template in this approximation.
+        zones = set()
+        if re.search(r"\b(?:upper|apical|apex)\b", finding_text, re.I):
+            zones.add("upper")
+        if re.search(r"\b(?:lower|basal|basilar|base)\b", finding_text, re.I):
+            zones.add("lower")
+        if re.search(r"\b(?:middle|lingula|lingular)\b", finding_text, re.I):
+            zones.add("unsupported")
+        zone = next(iter(zones)) if len(zones) == 1 else None
 
         # Find matching anatomy region
         matched_region = None
         matched_anatomy = None
         for keyword, regions in cls.KEYWORD_ANATOMY_MAP.items():
-            if keyword not in text_lower:
+            if is_negated or not re.search(r"(?<![a-z])" + re.escape(keyword) + r"(?:s|es)?(?![a-z])", text_lower):
                 continue
-            chosen = [name for name in regions if laterality is None
+            has_side = any(name.startswith(("left_", "right_")) for name in regions)
+            chosen = [name for name in regions if not has_side or laterality is None
                       or laterality == "bilateral" or name.startswith(laterality + "_")]
+            if zone and all(name.endswith(("_upper_lung", "_lower_lung")) for name in regions):
+                chosen = [name for name in chosen if name.endswith(f"_{zone}_lung")]
             if not chosen:
                 continue
             boxes = [cls.ANATOMY_TEMPLATES[name] for name in chosen]
