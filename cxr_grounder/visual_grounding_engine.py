@@ -170,29 +170,33 @@ class VisualGroundingEngine:
     def classify_finding(cls, finding_text: str) -> FindingCategory:
         """Classify a finding text into a category."""
         text_lower = finding_text.lower()
-        if any(kw in text_lower for kw in ["heart", "cardiac", "cardiomegaly", "pericardial"]):
-            return FindingCategory.CARDIAC
-        if any(kw in text_lower for kw in ["lung", "pulmonary", "pneumonia", "nodule", "mass", "opacity", "atelectasis", "consolidation"]):
-            return FindingCategory.PULMONARY
-        if any(kw in text_lower for kw in ["pleural", "effusion", "pneumothorax"]):
+
+        def has_term(terms):
+            return any(re.search(r"\b" + re.escape(term) + r"\b", text_lower) for term in terms)
+
+        if has_term(["pleural", "effusion", "effusions", "pneumothorax"]):
             return FindingCategory.PLEURAL
-        if any(kw in text_lower for kw in ["mediastinal", "hilar", "aortic", "trachea"]):
+        if has_term(["heart", "cardiac", "cardiomegaly", "pericardial"]):
+            return FindingCategory.CARDIAC
+        if has_term(["lung", "lungs", "pulmonary", "pneumonia", "nodule", "nodules",
+                     "mass", "masses", "opacity", "atelectasis", "consolidation"]):
+            return FindingCategory.PULMONARY
+        if has_term(["mediastinal", "hilar", "aortic", "trachea"]):
             return FindingCategory.MEDIASTINAL
-        if any(kw in text_lower for kw in ["fracture", "rib", "vertebral", "spine"]):
+        if has_term(["fracture", "rib", "vertebral", "spine"]):
             return FindingCategory.SKELETAL
-        if any(kw in text_lower for kw in ["device", "catheter", "pacemaker", "line", "tube"]):
+        if has_term(["device", "catheter", "pacemaker", "line", "tube"]):
             return FindingCategory.DEVICE
         return FindingCategory.OTHER
 
     @classmethod
     def determine_laterality(cls, finding_text: str) -> Optional[str]:
         """Determine laterality from finding text."""
-        text_lower = finding_text.lower()
-        if "bilateral" in text_lower or "both" in text_lower:
+        if re.search(r"\b(?:bilateral|both)\b", finding_text, re.I):
             return "bilateral"
-        if "right" in text_lower:
+        if re.search(r"\bright\b", finding_text, re.I):
             return "right"
-        if "left" in text_lower:
+        if re.search(r"\bleft\b", finding_text, re.I):
             return "left"
         return None
 
